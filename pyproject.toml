@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "NLP_Project"
+version = "0.1.0"
+description = ""
+authors = ["Janosch Hoefer"]
+
+[tool.poetry.scripts]
+main = "src.NLP_Project.main:main"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+
+[tool.poetry.dev-dependencies]
+pytest = "^5.2"
+pytest-cov = "^3.0.0"
+black = "^22.1.0"
+flake8 = "^4.0.1"
+pre-commit = "^2.17.0"
+ipykernel = "^6.16.0"
+
+[build-system]
+requires = ["poetry-core>=1.2.2"]
+build-backend = "poetry.core.masonry.api"

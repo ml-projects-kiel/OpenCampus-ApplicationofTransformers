@@ -1,0 +1,34 @@
+# Distribution / packaging
+dist
+pip-wheel-metadata/
+*.egg-info
+
+# Environments
+venv
+.venv**
+.env
+/.virtual_documents
+
+# pyenv
+.python-version
+
+# Unit test
+fix_tests
+.coverage
+
+# Spotify
+.cache
+token.js
+
+# Stuff
+output
+.idea
+.vscode/
+**__pycache__**
+stack_templates/
+.DS_Store**
+*.drawio
+*.pdf
+
+# Jupyter-lab
+**/.ipynb_checkpoints

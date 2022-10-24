@@ -1,0 +1,10 @@
+[flake8]
+
+; ignore errors for black compability:
+; W503: line break before binary operator
+; E203: whitepsace before ':'
+; E501: line too long (black takes care already)
+ignore = W503, E203, E501
+
+exclude = .venv
+max-complexicty = 10
