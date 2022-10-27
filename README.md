@@ -2,6 +2,15 @@
 
 # OpenCampus - Application of Transformers
 
+## Installation
+
+### Hugging Face + PyTorch
+
+Using Hugging Face on MacOs requires the following dependency to be installed BEFORE the PyTorch installation.
+
+- If the `libshm.dylib` file is missing, run:<br>
+    `brew install libomp`
+
 ### Poetry
 
 Poetry is a tool for dependency management and packaging in Python. It allows you to declare the libraries your project depends on and it will manage (install/update) them for you. [About Poetry](https://python-poetry.org/).
