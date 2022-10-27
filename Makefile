@@ -10,6 +10,12 @@ lint: format format-check
 install:
 	poetry install
 
+kernel:
+	poetry run python -m ipykernel install --user --name OpenCampusNLP
+
+requirements:
+	poetry export --without-hashes -f requirements.txt -o requirements.txt
+
 test:
 	poetry run coverage run --source=NLP_NLP_Project -m pytest -v -p no:warnings
 	poetry run coverage report -m --skip-covered
