@@ -2,14 +2,15 @@
 name = "NLP_Project"
 version = "0.1.0"
 description = ""
-authors = ["Janosch Hoefer"]
+authors = ["Janosch Hoefer <janosch.hoefer@student.fh-kiel.de>"]
+
 
 [tool.poetry.scripts]
 main = "src.NLP_Project.main:main"
 
 [tool.poetry.dependencies]
 python = "^3.10"
-transformers = {extras = ["sentencepiece"], version = "^4.23.1"}
+transformers = { extras = ["sentencepiece"], version = "^4.23.1" }
 torch = "^1.12.1"
 torchvision = "^0.13.1"
 torchaudio = "^0.12.1"
