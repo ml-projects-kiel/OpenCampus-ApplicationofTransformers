@@ -1,5 +1,10 @@
-name: Integration
+name: CodeQL Security Scan
 on:
+  push:
+    branches:
+      - develop
+      - qa
+      - production
   pull_request:
     branches:
       - develop
@@ -7,8 +12,13 @@ on:
       - production
 
 jobs:
-  CI:
+  CodeQL:
     runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: ["python"]
 
     steps:
       #----------------------------------------------
@@ -16,10 +26,6 @@ jobs:
       #----------------------------------------------
       - name: Check out repository
         uses: actions/checkout@v3
-
-      - name: Check dependencies
-        run: ./.github/helper_scripts/trivy_dependencies_check.sh
-        shell: bash
 
       - name: Set up python
         id: setup-python
@@ -49,7 +55,19 @@ jobs:
           python -m pip install --upgrade pip
           poetry install
           python --version
+          echo "CODEQL_PYTHON=$(which python)" >> $GITHUB_ENV
 
-      - name: Run linter
-        run: |
-          make lint
+      #----------------------------------------------
+      #  ----- Check Source Code for vulnerabilities
+      #----------------------------------------------
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v2
+        with:
+          languages: ${{ matrix.language }}
+          setup-python-dependencies: false
+          config-file: ./.github/codeql/codeql-config.yaml
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
+        with:
+          category: "/language:${{matrix.language}}"
