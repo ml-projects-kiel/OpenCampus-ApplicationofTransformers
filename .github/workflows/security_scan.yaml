@@ -7,13 +7,11 @@ on:
     branches:
       - develop
     paths:
-      - src
-    paths-ignore:
-      - "**/images/**"
-      - "**/*.ipynb"
-      - "**/*.md"
-      - "**/*.txt"
-      - "**/*.yaml"
+      - "src/**"
+      - "!src/lectures/**"
+      - "!**/*.md"
+      - "!**/*.txt"
+      - "!**/*.yaml"
 
 jobs:
   CodeQL:
