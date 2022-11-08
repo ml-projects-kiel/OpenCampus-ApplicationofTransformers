@@ -6,6 +6,16 @@ on:
   pull_request:
     branches:
       - develop
+    paths:
+      - src
+    paths-ignore:
+      - "**/images/**"
+      - "**/__pycache__/**"
+      - "**/.ipynb_checkpoints/**"
+      - "**/*.ipynb"
+      - "**/*.md"
+      - "**/*.txt"
+      - "**/*.yaml"
 
 jobs:
   CodeQL:
