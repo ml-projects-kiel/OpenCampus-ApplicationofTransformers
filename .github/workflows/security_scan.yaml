@@ -10,8 +10,6 @@ on:
       - src
     paths-ignore:
       - "**/images/**"
-      - "**/__pycache__/**"
-      - "**/.ipynb_checkpoints/**"
       - "**/*.ipynb"
       - "**/*.md"
       - "**/*.txt"

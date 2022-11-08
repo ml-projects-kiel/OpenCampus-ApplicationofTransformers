@@ -5,6 +5,9 @@ on:
       - develop
       - qa
       - production
+    paths-ignore:
+      - "**/*.md"
+      - "**/*.txt"
 
 jobs:
   CI:
