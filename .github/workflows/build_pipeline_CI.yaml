@@ -33,20 +33,6 @@ jobs:
           python-version: "3.10.X"
 
       #----------------------------------------------
-      #  ----- Check Source Code for vulnerabilities
-      #----------------------------------------------
-
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v2
-        with:
-          languages: ${{ matrix.language }}
-
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v2
-        with:
-          category: "/language:${{matrix.language}}"
-
-      #----------------------------------------------
       #  -----  install & configure poetry  -----
       #----------------------------------------------
       - name: Install Poetry
@@ -68,6 +54,27 @@ jobs:
           python -m pip install --upgrade pip
           poetry install
           python --version
+
+      #----------------------------------------------
+      #  ----- Check Source Code for vulnerabilities
+      #----------------------------------------------
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v2
+        with:
+          languages: ${{ matrix.language }}
+          setup-python-dependencies: false
+          config-file: ./.github/codeql/codeql-config.yaml
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
+        with:
+          category: "/language:${{matrix.language}}"
+
+      - name: Upload CodeQL results
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          # Path to SARIF file relative to the root of the repository
+          sarif_file: $GITHUB_WORKSPACE/results/python.sarif
 
       - name: Run linter
         run: |
