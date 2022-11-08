@@ -3,7 +3,7 @@ format:
 	poetry run black --line-length=100 .
 
 format-check:
-	poetry run flake8 --config=.flake8
+	poetry run flake8 --config=.flake8 --benchmark
 
 lint: format format-check
 

@@ -10,9 +10,14 @@ jobs:
   CI:
     runs-on: ubuntu-latest
 
+    strategy:
+      fail-fast: false
+      matrix:
+        language: ["python"]
+
     steps:
       #----------------------------------------------
-      #       check-out repo and set-up python
+      #  ----- Check-out repo and check dependencies
       #----------------------------------------------
       - name: Check out repository
         uses: actions/checkout@v3
@@ -26,6 +31,21 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: "3.10.X"
+
+      #----------------------------------------------
+      #  ----- Check Source Code for vulnerabilities
+      #----------------------------------------------
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v2
+        with:
+          languages: ${{ matrix.language }}
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
+        with:
+          category: "/language:${{matrix.language}}"
+
       #----------------------------------------------
       #  -----  install & configure poetry  -----
       #----------------------------------------------
@@ -36,6 +56,9 @@ jobs:
           virtualenvs-in-project: true
           installer-parallel: true
 
+      #----------------------------------------------
+      #  -----  Install ubuntu dependencies  -----
+      #----------------------------------------------
       - name: Install Ubuntu packages
         run: |
           sudo apt-get update
@@ -44,6 +67,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           poetry install
+          python --version
 
       - name: Run linter
         run: |
