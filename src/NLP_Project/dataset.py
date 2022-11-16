@@ -105,7 +105,9 @@ def get_lastest_tweet_from_mongo(username: str) -> dict:
 
 def main():
     logging.info("Starting...")
-    userlist = ["MKBHD", "@sdfs", "elonmusk", "neiltyson", "BillGates"]
+    userlistpath = "data/userlist.txt"
+    with open(userlistpath, "r") as f:
+        userlist = f.read().splitlines()
 
     env = Environment()
     client = tweepy.Client(bearer_token=env.bearer_token, wait_on_rate_limit=True, return_type=dict)
