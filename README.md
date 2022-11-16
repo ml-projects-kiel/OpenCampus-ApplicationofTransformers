@@ -18,16 +18,16 @@ Poetry is a tool for dependency management and packaging in Python. It allows yo
 - Install Poetry
   | OS | Command |
   | ------- | -------------------------------------------------------------------------------------------------------------------- |
-  | Windows | <code>(Invoke-WebRequest -Uri ht<span>tps://</span>install.python-poetry.org -UseBasicParsing).Content | py -</code> |
-  | Mac | <code>curl -sSL ht<span>tps://</span>install.python-poetry.org | python3 -</code> |
+  | Windows | <code>(Invoke-WebRequest -Uri ht<span>tps://</span>install.python-poetry.org -UseBasicParsing).Content \| py -</code> |
+  | Mac | <code>curl -sSL ht<span>tps://</span>install.python-poetry.org \| python3 -</code> |
 
 - After installing poetry restart terminal/cmd <br>
 
-- Activate installed Python >=3.9 from Pyenv in Poetry:<br>
-  `poetry env use /full/path/to/python`
-
 - (Optional) Config Poetry venv inside the repository:<br>
   `poetry config virtualenvs.in-project true`
+
+- Activate installed Python >=3.9 from Pyenv in Poetry:<br>
+  `poetry env use /full/path/to/python`
 
 - After cloning the repo (go inside the repo), you create and activate a venv via:<br>
   `poetry shell`
