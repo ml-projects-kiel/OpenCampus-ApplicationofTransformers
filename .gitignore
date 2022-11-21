@@ -32,3 +32,6 @@ stack_templates/
 
 # Jupyter-lab
 **/.ipynb_checkpoints
+
+# Data
+data/**/raw/

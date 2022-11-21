@@ -6,18 +6,14 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 from tqdm import tqdm
 
-from NLP_Project.dataset import load_collection
+from NLP_Project.constants import Environment
+from NLP_Project.database import MongoDatabase
 
 
-def load_raw_data(user: str):
-    collection = load_collection(user)
-    return [data["text"] for data in collection.find(projection={"_id": 1, "text": 1})]
-
-
-def combine_tweets_to_df(userlist: list[str]) -> pd.DataFrame:
+def combine_tweets_to_df(userlist: list[str], mongo_client: MongoDatabase) -> pd.DataFrame:
     data = []
     for user in tqdm(userlist):
-        data_user = load_raw_data(user)
+        data_user = mongo_client.load_raw_data(user, query={"_id": 1, "text": 1})
         data.append(pd.DataFrame({"text": data_user, "label": repeat(user, len(data_user))}))
     return pd.concat(data)
 
@@ -33,7 +29,7 @@ def save_feature_data(path: str, df: pd.DataFrame):
     )
 
 
-def load_feature_data(path: str, user: Optional[str] = None):
+def load_feature_data(path: str, user: Optional[str] = None) -> pd.DataFrame:
     if user is None:
         df = pq.ParquetDataset(path, use_legacy_dataset=False).read().to_pandas()
     else:
@@ -52,8 +48,16 @@ def main():
 
     feature_path = "data/feature/combine_tweets.parquet"
 
+    env = Environment()
+    mongo_client = MongoDatabase(
+        db_host=env.db_host,  # type: ignore
+        db_port=env.db_port,  # type: ignore
+        db_name=env.db_name,  # type: ignore
+        db_user=env.db_user,  # type: ignore
+        db_password=env.db_pw,  # type: ignore
+    )
     # Load raw data
-    df = combine_tweets_to_df(userlist)
+    df = combine_tweets_to_df(userlist, mongo_client)
     print(df.shape)
     save_feature_data(feature_path, df)
 

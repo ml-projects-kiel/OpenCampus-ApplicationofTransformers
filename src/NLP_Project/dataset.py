@@ -1,37 +1,35 @@
-import datetime
 import json
 import logging
 import os
 
-import pymongo as pm
 import tweepy
-from tqdm import tqdm
 
 from NLP_Project.constants import TWEET_FIELDS, USER_FIELDS, Environment
+from NLP_Project.database import MongoDatabase
 
 logging.basicConfig(level=logging.INFO)
 
 
 # Download Twitter User Timeline using tweepy
 def get_user_timeline(
-    client: tweepy.Client, username: str, userid: str, max_results: int = 3200
+    tweepy_client: tweepy.Client,
+    mongo_client: MongoDatabase,
+    username: str,
+    userid: str,
+    max_results: int = 3200,
 ) -> list:
     expansions = "referenced_tweets.id"
 
     logging.info(f"Downloading user timeline for '{username}'...")
     # Get latest Tweet in MongoDB
-    try:
-        latest_tweet = get_lastest_tweet_from_mongo(username)
-        latest_tweet_date = datetime.datetime.fromisoformat(latest_tweet["created_at"][:-5])
-        new_latest_date = latest_tweet_date + datetime.timedelta(seconds=1)
-        latest_tweet_date = new_latest_date.isoformat() + "Z"
+    latest_tweet_date = mongo_client.get_latest_tweet(username=username)
+    if latest_tweet_date is not None:
         logging.info(f"Downloading tweets newer than {latest_tweet_date}...")
-    except IndexError:
-        logging.info(f"No tweets found in MongoDB for '{username}'. Downloading all tweets...")
-        latest_tweet_date = None
+    else:
+        logging.info(f"No tweets found in mongodb for '{username}'. downloading all tweets...")
 
     temp = tweepy.Paginator(
-        client.get_users_tweets,
+        tweepy_client.get_users_tweets,
         id=userid,
         start_time=latest_tweet_date,
         tweet_fields=TWEET_FIELDS,
@@ -46,7 +44,7 @@ def get_user_timeline(
 
 def get_user_data(client: tweepy.Client, username: str) -> dict:
     try:
-        return client.get_user(username=username, user_fields=USER_FIELDS)["data"]
+        return client.get_user(username=username, user_fields=USER_FIELDS)["data"]  # type: ignore
     except tweepy.BadRequest as error:
         logging.error(f"User '{username}' not found!")
         raise error
@@ -75,34 +73,6 @@ def extend_tweet_data(oldtweets: list, newtweets: list) -> list:
     return oldtweets + new_tweets
 
 
-def connectmongodb() -> pm.MongoClient:
-    env = Environment()
-    mongodb_url = f"mongodb://{env.db_user}:{env.db_pw}@{env.db_host}:{env.db_port}"
-    client = pm.MongoClient(mongodb_url)
-    return client[env.db_name]
-
-
-def load_collection(collection_name: str) -> pm.collection.Collection:
-    client = connectmongodb()
-    return client[collection_name]
-
-
-def save_in_mongodb(username: str, usertweets: list) -> None:
-    logging.info(f"Saving new tweets for '{username}' in MongoDB...")
-    collection = load_collection(username)
-    for tweet in tqdm(usertweets):
-        tweet["_id"] = tweet.pop("id")
-        collection.replace_one({"_id": tweet["_id"]}, tweet, upsert=True)
-
-
-def get_lastest_tweet_from_mongo(username: str) -> dict:
-    collection = load_collection(username)
-    try:
-        return [tweet for tweet in collection.find().sort("created_at", -1).limit(1)][0]
-    except IndexError:
-        raise IndexError(f"No tweets found for '{username}' in MongoDB!")
-
-
 def main():
     logging.info("Starting...")
     userlistpath = "data/userlist.txt"
@@ -110,17 +80,28 @@ def main():
         userlist = f.read().splitlines()
 
     env = Environment()
-    client = tweepy.Client(bearer_token=env.bearer_token, wait_on_rate_limit=True, return_type=dict)
+    tweepy_client = tweepy.Client(
+        bearer_token=env.bearer_token, wait_on_rate_limit=True, return_type=dict  # type: ignore
+    )
+    mongo_client = MongoDatabase(
+        db_host=env.db_host,  # type: ignore
+        db_port=env.db_port,  # type: ignore
+        db_name=env.db_name,  # type: ignore
+        db_user=env.db_user,  # type: ignore
+        db_password=env.db_pw,  # type: ignore
+    )
     for user in userlist:
         try:
-            user_data = get_user_data(client, user)
+            user_data = get_user_data(tweepy_client, user)
         except tweepy.BadRequest:
             logging.info(f"User '{user}' not found. Skipping...")
             continue
-        user_tweets = get_user_timeline(client, username=user, userid=user_data["id"])
+        user_tweets = get_user_timeline(
+            tweepy_client, mongo_client, username=user, userid=user_data["id"]
+        )
         if len(user_tweets) > 0:
             save_json(username=user, userdata=user_data, usertweets=user_tweets, path="data/raw")
-            save_in_mongodb(username=user, usertweets=user_tweets)
+            mongo_client.save_in_mongodb(username=user, usertweets=user_tweets)
 
 
 if __name__ == "__main__":
