@@ -34,3 +34,6 @@ Poetry is a tool for dependency management and packaging in Python. It allows yo
 
 - The installations of all libraries will be done via:<br>
   `poetry install`
+
+- Install pre-commit yaml:<br>
+  `pre-commit install`
