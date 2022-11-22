@@ -68,6 +68,8 @@ class Environment:
     db_user: Optional[str] = os.environ.get("DB_USER")
     db_pw: Optional[str] = os.environ.get("DB_PW")
 
+    hf_api_token: Optional[str] = os.environ.get("HUGGINGFACE_API_TOKEN")
+
 
 def main():
     return ()
