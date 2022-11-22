@@ -35,3 +35,4 @@ stack_templates/
 
 # Data
 data/**/raw/
+data/**/feature/

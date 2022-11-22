@@ -1,21 +1,13 @@
-from itertools import repeat
 from typing import Optional
 
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
-from tqdm import tqdm
+import yaml
 
 from NLP_Project.constants import Environment
 from NLP_Project.database import MongoDatabase
-
-
-def combine_tweets_to_df(userlist: list[str], mongo_client: MongoDatabase) -> pd.DataFrame:
-    data = []
-    for user in tqdm(userlist):
-        data_user = mongo_client.load_raw_data(user, query={"_id": 1, "text": 1})
-        data.append(pd.DataFrame({"text": data_user, "label": repeat(user, len(data_user))}))
-    return pd.concat(data)
+from NLP_Project.dataset import combine_tweets_to_df
 
 
 def save_feature_data(path: str, df: pd.DataFrame):
@@ -42,11 +34,9 @@ def load_feature_data(path: str, user: Optional[str] = None) -> pd.DataFrame:
 
 
 def main():
-    userlistpath = "data/userlist.txt"
-    with open(userlistpath, "r") as f:
-        userlist = f.read().splitlines()
-
-    feature_path = "data/feature/combine_tweets.parquet"
+    userdictpath = "data/userlist.yaml"
+    with open(userdictpath, "r") as stream:
+        userdict = yaml.safe_load(stream)
 
     env = Environment()
     mongo_client = MongoDatabase(
@@ -57,14 +47,17 @@ def main():
         db_password=env.db_pw,  # type: ignore
     )
     # Load raw data
-    df = combine_tweets_to_df(userlist, mongo_client)
-    print(df.shape)
-    save_feature_data(feature_path, df)
+    for lang, userlist in userdict.items():
+        print(f"Loading data for language {lang}...")
+        feature_path = f"data/feature/combine_tweets_{lang}.parquet"
+        df = combine_tweets_to_df(userlist, mongo_client, threshold=1000)
+        print(df.shape)
+        save_feature_data(feature_path, df)
 
-    # Load feature data
-    df = load_feature_data(feature_path)
-    print(df.shape)
-    print(df.head())
+        # Load feature data
+        df = load_feature_data(feature_path)
+        print(df.shape)
+        print(df.head())
 
 
 if __name__ == "__main__":

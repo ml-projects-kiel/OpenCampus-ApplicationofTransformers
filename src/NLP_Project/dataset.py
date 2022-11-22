@@ -1,8 +1,12 @@
-import json
 import logging
-import os
+from itertools import repeat
+from typing import Optional
 
+import pandas as pd
 import tweepy
+import yaml
+from datasets.arrow_dataset import Dataset
+from tqdm import tqdm
 
 from NLP_Project.constants import TWEET_FIELDS, USER_FIELDS, Environment
 from NLP_Project.database import MongoDatabase
@@ -50,34 +54,32 @@ def get_user_data(client: tweepy.Client, username: str) -> dict:
         raise error
 
 
-# Save dictionary to json file
-def save_json(username: str, userdata: dict, usertweets: list, path: str) -> None:
-    os.makedirs(path, exist_ok=True)
-    logging.info("Saving json file...")
-    if os.path.isfile(f"{path}/{username}.json"):
-        logging.info(f"Found old data for '{username}'. Extending data...")
-        with open(f"{path}/{username}.json", "r") as f:
-            old_data = json.load(f)
-        new_tweets = extend_tweet_data(old_data["tweets"], usertweets)
-    else:
-        new_tweets = usertweets
-    data = {"user": userdata, "tweets": new_tweets}
-    with open(f"{path}/{username}.json", "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=4)
+def combine_tweets_to_df(
+    userlist: list[str], mongo_client: MongoDatabase, threshold: Optional[int] = None
+) -> pd.DataFrame:
+    data = []
+    for user in tqdm(userlist):
+        data_user = mongo_client.load_raw_data(user, query={"_id": 1, "text": 1})
+        if threshold is not None and len(data_user) < threshold:
+            continue
+        data.append(pd.DataFrame({"text": data_user, "label": repeat(user, len(data_user))}))
+    return pd.concat(data)
 
 
-def extend_tweet_data(oldtweets: list, newtweets: list) -> list:
-    old_ids = [tweet["id"] for tweet in oldtweets]
-    new_tweets = [tweet for tweet in newtweets if tweet["id"] not in old_ids]
-    logging.info(f"Found {len(new_tweets)} new tweets.")
-    return oldtweets + new_tweets
+def create_HF_dataset(df: pd.DataFrame, dataset_name: str, token: str) -> None:
+    df.index.names = ["Date"]
+
+    # Huggingface Dataset
+    dataset = Dataset.from_pandas(df)
+    dataset = dataset.class_encode_column("label")
+    dataset.push_to_hub(dataset_name, token=token, private=True)
 
 
 def main():
     logging.info("Starting...")
-    userlistpath = "data/userlist.txt"
-    with open(userlistpath, "r") as f:
-        userlist = f.read().splitlines()
+    userdictpath = "data/userlist.yaml"
+    with open(userdictpath, "r") as stream:
+        userdict = yaml.safe_load(stream)
 
     env = Environment()
     tweepy_client = tweepy.Client(
@@ -90,7 +92,8 @@ def main():
         db_user=env.db_user,  # type: ignore
         db_password=env.db_pw,  # type: ignore
     )
-    for user in userlist:
+    new_entries = 0
+    for user in [entry for dlist in userdict.values() for entry in dlist]:
         try:
             user_data = get_user_data(tweepy_client, user)
         except tweepy.BadRequest:
@@ -100,8 +103,22 @@ def main():
             tweepy_client, mongo_client, username=user, userid=user_data["id"]
         )
         if len(user_tweets) > 0:
-            save_json(username=user, userdata=user_data, usertweets=user_tweets, path="data/raw")
             mongo_client.save_in_mongodb(username=user, usertweets=user_tweets)
+            new_entries += len(user_tweets)
+
+    if new_entries == 0:
+        logging.info("No new entries found. Exiting...")
+        return
+    print("\n-----------------------------------------------------------")
+    print(f"Create new HF dataset with {new_entries} new entries? (y/n)")
+    create_new_dataset = input()
+    if create_new_dataset == "y":
+        for lang, userlist in userdict.items():
+            df = combine_tweets_to_df(userlist, mongo_client, threshold=1000)
+            logging.info(f"Creating HF dataset for {lang}...")
+            create_HF_dataset(
+                df, f"ML-Projects-Kiel/tweetyface_{lang}", env.hf_api_token  # type: ignore
+            )
 
 
 if __name__ == "__main__":
