@@ -32,7 +32,7 @@ pytest-cov = "^4.0.0"
 black = "^22.10.0"
 flake8 = "^5.0.4"
 pre-commit = "^2.20.0"
-ipykernel = "^6.16.0"
+ipykernel = "^6.17.1"
 
 [build-system]
 requires = ["poetry-core>=1.2.2"]
