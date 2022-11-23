@@ -33,9 +33,11 @@ class MongoDatabase:
         ]
         self.collection.bulk_write(update_list)
 
-    def load_raw_data(self, collection: str, query: dict) -> list:
+    def load_raw_data(
+        self, collection: str, filter: Optional[dict] = None, projection: Optional[dict] = None
+    ) -> list:
         self.load_collection(collection)
-        return [data["text"] for data in self.collection.find(projection=query)]
+        return [data for data in self.collection.find(filter=filter, projection=projection)]
 
     def get_latest_tweet(self, username: str) -> str | None:
         self.load_collection(username)

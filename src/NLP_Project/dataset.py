@@ -59,7 +59,8 @@ def combine_tweets_to_df(
 ) -> pd.DataFrame:
     data = []
     for user in tqdm(userlist):
-        data_user = mongo_client.load_raw_data(user, query={"_id": 1, "text": 1})
+        data_raw = mongo_client.load_raw_data(user, projection={"_id": 1, "text": 1})
+        data_user = [data["text"] for data in data_raw]
         if threshold is not None and len(data_user) < threshold:
             continue
         data.append(pd.DataFrame({"text": data_user, "label": repeat(user, len(data_user))}))
