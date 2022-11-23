@@ -1,29 +1,30 @@
 repos:
--   repo: local
+  - repo: local
     hooks:
-    -   id: jupyter-nb-clear-output
+      - id: jupyter-nb-clear-output
         name: jupyter-nb-clear-output
         files: \.ipynb$
         stages: [commit]
         language: system
         entry: jupyter nbconvert --ClearOutputPreprocessor.enabled=True --inplace
 
--   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v2.3.0
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.3.0
     hooks:
-    -   id: check-yaml
-    -   id: end-of-file-fixer
-    -   id: trailing-whitespace
--   repo: https://github.com/psf/black
-    rev: 22.3.0
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+  - repo: https://github.com/psf/black
+    rev: 22.10.0
     hooks:
-    -   id: black
+      - id: black
         args:
-        - --line-length=100
+          - --line-length=100
 
--   repo: https://github.com/s-weigand/flake8-nb
-    rev: v0.3.1
+  - repo: https://github.com/s-weigand/flake8-nb
+    rev: v0.5.2
     hooks:
-    -   id: flake8-nb
+      - id: flake8-nb
         args:
-        - --max-line-length=100
+          - --max-line-length=100
+          - --extend-ignore=E402
