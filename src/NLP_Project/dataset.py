@@ -1,17 +1,20 @@
 import logging
+import os
 from itertools import repeat
 from typing import Optional
 
 import pandas as pd
 import tweepy
 import yaml
-from datasets.arrow_dataset import Dataset
+from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 
 from NLP_Project.constants import TWEET_FIELDS, USER_FIELDS, Environment
 from NLP_Project.database import MongoDatabase
 
 logging.basicConfig(level=logging.INFO)
+
+RANDOM_SEED = 42
 
 
 # Download Twitter User Timeline using tweepy
@@ -67,13 +70,17 @@ def combine_tweets_to_df(
     return pd.concat(data)
 
 
-def create_HF_dataset(df: pd.DataFrame, dataset_name: str, token: str) -> None:
-    df.index.names = ["Date"]
+def create_HF_dataset_rawdata(df: pd.DataFrame, lang: str) -> None:
+    df.index.names = ["idx"]
+    # Split Data
+    train, validate = train_test_split(df, test_size=0.2, shuffle=True, random_state=RANDOM_SEED)
 
-    # Huggingface Dataset
-    dataset = Dataset.from_pandas(df)
-    dataset = dataset.class_encode_column("label")
-    dataset.push_to_hub(dataset_name, token=token, private=True)
+    for split, split_type in zip([train, validate], ["train", "validation"]):
+        json_name = f"data/tweetyface_{lang}/{split_type}.json"
+        os.makedirs(os.path.dirname(json_name), exist_ok=True)
+        _df = pd.DataFrame(split).reset_index().rename(columns={"index": "idx"})
+        _df[["text", "label", "idx"]].to_json(json_name, orient="records", lines=True, index=True)
+        logging.info(f"Saved {json_name}.")
 
 
 def main():
@@ -117,9 +124,7 @@ def main():
         for lang, userlist in userdict.items():
             df = combine_tweets_to_df(userlist, mongo_client, threshold=1000)
             logging.info(f"Creating HF dataset for {lang}...")
-            create_HF_dataset(
-                df, f"ML-Projects-Kiel/tweetyface_{lang}", env.hf_api_token  # type: ignore
-            )
+            create_HF_dataset_rawdata(df, lang)
 
 
 if __name__ == "__main__":
