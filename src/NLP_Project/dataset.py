@@ -61,12 +61,14 @@ def combine_tweets_to_df(
     userlist: list[str], mongo_client: MongoDatabase, threshold: Optional[int] = None
 ) -> pd.DataFrame:
     data = []
-    for user in tqdm(userlist):
+    for idx, user in tqdm(enumerate(userlist)):
         data_raw = mongo_client.load_raw_data(user, projection={"_id": 1, "text": 1})
         data_user = [data["text"] for data in data_raw]
         if threshold is not None and len(data_user) < threshold:
             continue
-        data.append(pd.DataFrame({"text": data_user, "label": repeat(user, len(data_user))}))
+        df = pd.DataFrame({"text": data_user, "label": repeat(user, len(data_user))})
+        df.index = df.index + (idx * 10**6)  # Avoid duplicate indices
+        data.append(df)
     return pd.concat(data)
 
 
