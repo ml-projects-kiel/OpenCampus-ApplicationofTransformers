@@ -56,11 +56,9 @@ def _logger(name, level, msg, exc_info=None, ow_level=None):
 
 @dataclass(frozen=True)
 class Environment:
-    logging.info("Loading environment variables.")
     envfile = find_dotenv()
     if not envfile:
         raise FileNotFoundError("No .env file found!")
-    logging.info("Found .env file.")
     load_dotenv(envfile)
     access_token: Optional[str] = os.environ.get("ACCESS_TOKEN")
     access_token_secret: Optional[str] = os.environ.get("ACCESS_TOKEN_SECRET")
