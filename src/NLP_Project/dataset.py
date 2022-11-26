@@ -40,7 +40,12 @@ class DatasetGenerator:
         )
         self.logger = functools.partial(_logger, "DatasetGenerator", logging_level)
 
-    # Download Twitter User Timeline using tweepy
+    def load_userlist(self, userdictpath: str) -> tuple[str, dict[str, list[str]]]:
+        userdict_name = os.path.basename(userdictpath).split(".")[0]
+        with open(userdictpath, "r") as stream:
+            userdict = yaml.safe_load(stream)
+        return userdict_name, userdict
+
     def get_user_timeline(
         self, username: Optional[str] = None, userid: Optional[str] = None, max_results: int = 3200
     ) -> list:
@@ -149,19 +154,20 @@ class DatasetGenerator:
 
 
 def main():
-    userdictpath = "data/userlist.yaml"
-    with open(userdictpath, "r") as stream:
-        userdict = yaml.safe_load(stream)
+    userdictpath = "data/tweetyface_short.yaml"
 
     env = Environment()
     dataset_generator = DatasetGenerator(env)
+    userdict_name, userdict = dataset_generator.load_userlist(userdictpath)
     for lang, userlist in userdict.items():
         for user in userlist:
             try:
                 dataset_generator.get_and_save_timeline(username=user)
             except tweepy.NotFound:
                 continue
-        dataset_generator.create_HF_dataset_rawdata(lang=lang, userlist=userlist, threshold=1000)
+        dataset_generator.create_HF_dataset_rawdata(
+            lang=lang, userlist=userlist, threshold=1000, filename=userdict_name
+        )
 
 
 if __name__ == "__main__":
