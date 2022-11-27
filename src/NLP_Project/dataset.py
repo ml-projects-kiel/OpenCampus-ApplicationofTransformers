@@ -135,8 +135,12 @@ class DatasetGenerator:
     ) -> None:
         if df is None and userlist is None:
             raise MissingUserInput("Please provide a valid DataFrame or list with usernames")
-        elif df is None:
+        elif df is None and userlist is not None:
             df = self.combine_tweets_to_df(userlist=userlist, threshold=threshold)
+        elif df is not None and userlist is not None:
+            raise Warning("Both DataFrame and list with usernames provided. Using DataFrame.")
+        else:
+            df = df
 
         df.index.names = ["idx"]  # type: ignore
         train, validate = train_test_split(
