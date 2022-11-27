@@ -144,7 +144,11 @@ class DatasetGenerator:
 
         df.index.names = ["idx"]  # type: ignore
         train, validate = train_test_split(
-            df, test_size=0.2, shuffle=True, random_state=RANDOM_SEED
+            df,
+            test_size=0.2,
+            shuffle=True,
+            random_state=RANDOM_SEED,
+            stratify=df["label"].to_list(),  # type: ignore
         )
 
         for split, split_type in zip([train, validate], ["train", "validation"]):
@@ -158,20 +162,20 @@ class DatasetGenerator:
 
 
 def main():
-    userdictpath = "data/tweetyface_short.yaml"
-
-    env = Environment()
-    dataset_generator = DatasetGenerator(env)
-    userdict_name, userdict = dataset_generator.load_userlist(userdictpath)
-    for lang, userlist in userdict.items():
-        for user in userlist:
-            try:
-                dataset_generator.get_and_save_timeline(username=user)
-            except tweepy.NotFound:
-                continue
-        dataset_generator.create_HF_dataset_rawdata(
-            lang=lang, userlist=userlist, threshold=1000, filename=userdict_name
-        )
+    userdictpaths = ["data/tweetyface.yaml", "data/tweetyface_short.yaml"]
+    for userdictpath in userdictpaths:
+        env = Environment()
+        dataset_generator = DatasetGenerator(env)
+        userdict_name, userdict = dataset_generator.load_userlist(userdictpath)
+        for lang, userlist in userdict.items():
+            for user in userlist:
+                try:
+                    dataset_generator.get_and_save_timeline(username=user)
+                except tweepy.NotFound:
+                    continue
+            dataset_generator.create_HF_dataset_rawdata(
+                lang=lang, userlist=userlist, threshold=1000, filename=userdict_name
+            )
 
 
 if __name__ == "__main__":
