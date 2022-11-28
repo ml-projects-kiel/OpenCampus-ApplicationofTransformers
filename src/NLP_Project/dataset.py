@@ -13,6 +13,7 @@ from NLP_Project.constants import TWEET_FIELDS, USER_FIELDS, Environment, _logge
 from NLP_Project.database import MongoDatabase
 
 RANDOM_SEED = 42
+SPLIT_RATIO = 0.1
 
 
 class MissingUserInput(Exception):
@@ -166,7 +167,7 @@ class DatasetGenerator:
 
         train, validate = train_test_split(
             df,
-            test_size=0.2,
+            test_size=SPLIT_RATIO,
             shuffle=True,
             random_state=RANDOM_SEED,
             stratify=df["label"].to_list(),  # type: ignore
