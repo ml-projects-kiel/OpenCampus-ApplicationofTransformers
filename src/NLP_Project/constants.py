@@ -1,10 +1,11 @@
 import logging
 import os
 from dataclasses import dataclass
-from datetime import datetime
 from typing import Optional
 
 from dotenv import find_dotenv, load_dotenv
+
+logging.basicConfig(level=logging.INFO)
 
 TWEET_FIELDS = [
     "id",
@@ -43,15 +44,6 @@ USER_FIELDS = [
     "public_metrics",
     "verified",
 ]
-
-
-def _logger(name, level, msg, exc_info=None, ow_level=None):
-    time_now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    logging.basicConfig(
-        level=level,
-    )
-    report_level = logging.INFO if ow_level is None else ow_level
-    logging.log(report_level, f"{time_now} | {name:20} | {msg}", exc_info=exc_info)
 
 
 @dataclass(frozen=True)

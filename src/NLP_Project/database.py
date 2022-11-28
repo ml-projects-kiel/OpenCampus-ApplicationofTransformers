@@ -1,12 +1,9 @@
 import datetime
-import functools
 import logging
 from typing import Optional
 
 import pymongo as pm
 from tqdm import tqdm
-
-from NLP_Project.constants import _logger
 
 
 class MongoDatabase:
@@ -17,12 +14,10 @@ class MongoDatabase:
         db_password: str,
         db_host: str,
         db_port: int,
-        logging_level=logging.INFO,
         connection_string: Optional[str] = None,
     ):
         if connection_string is None:
             connection_string = f"mongodb://{db_user}:{db_password}@{db_host}:{db_port}"
-        self.logger = functools.partial(_logger, "MongoDatabase", logging_level)
         self.client = pm.MongoClient(connection_string)
         self.database = self.client[db_name]
 
@@ -30,7 +25,7 @@ class MongoDatabase:
         self.collection = self.database[collection_name]
 
     def save_in_mongodb(self, username: str, usertweets: list) -> None:
-        self.logger(f"Saving new tweets for '{username}' in MongoDB...")
+        logging.info(f"Saving new tweets for '{username}' in MongoDB...")
         self.load_collection(username)
         update_list = [
             pm.ReplaceOne({"_id": tweet.pop("id")}, tweet, upsert=True)
@@ -41,7 +36,6 @@ class MongoDatabase:
     def load_raw_data(
         self, collection: str, filter: Optional[dict] = None, projection: Optional[dict] = None
     ) -> list:
-        self.logger(f"Loading raw data from MongoDB collection '{collection}'...")
         self.load_collection(collection)
         return [data for data in self.collection.find(filter=filter, projection=projection)]
 
