@@ -1,11 +1,10 @@
 import logging
 import os
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Optional
 
 from dotenv import find_dotenv, load_dotenv
-
-logging.basicConfig(level=logging.INFO)
 
 TWEET_FIELDS = [
     "id",
@@ -46,13 +45,20 @@ USER_FIELDS = [
 ]
 
 
+def _logger(name, level, msg, exc_info=None, ow_level=None):
+    time_now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    logging.basicConfig(
+        level=level,
+    )
+    report_level = logging.INFO if ow_level is None else ow_level
+    logging.log(report_level, f"{time_now} | {name:20} | {msg}", exc_info=exc_info)
+
+
 @dataclass(frozen=True)
 class Environment:
-    logging.info("Loading environment variables.")
     envfile = find_dotenv()
     if not envfile:
         raise FileNotFoundError("No .env file found!")
-    logging.info("Found .env file.")
     load_dotenv(envfile)
     access_token: Optional[str] = os.environ.get("ACCESS_TOKEN")
     access_token_secret: Optional[str] = os.environ.get("ACCESS_TOKEN_SECRET")

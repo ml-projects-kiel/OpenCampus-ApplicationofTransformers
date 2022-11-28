@@ -1,132 +1,200 @@
+import functools
+import itertools
 import logging
 import os
-from itertools import repeat
 from typing import Optional
 
 import pandas as pd
 import tweepy
 import yaml
 from sklearn.model_selection import train_test_split
-from tqdm import tqdm
 
-from NLP_Project.constants import TWEET_FIELDS, USER_FIELDS, Environment
+from NLP_Project.constants import TWEET_FIELDS, USER_FIELDS, Environment, _logger
 from NLP_Project.database import MongoDatabase
-
-logging.basicConfig(level=logging.INFO)
 
 RANDOM_SEED = 42
 
 
-# Download Twitter User Timeline using tweepy
-def get_user_timeline(
-    tweepy_client: tweepy.Client,
-    mongo_client: MongoDatabase,
-    username: str,
-    userid: str,
-    max_results: int = 3200,
-) -> list:
-    expansions = "referenced_tweets.id"
-
-    logging.info(f"Downloading user timeline for '{username}'...")
-    # Get latest Tweet in MongoDB
-    latest_tweet_date = mongo_client.get_latest_tweet(username=username)
-    if latest_tweet_date is not None:
-        logging.info(f"Downloading tweets newer than {latest_tweet_date}...")
-    else:
-        logging.info(f"No tweets found in mongodb for '{username}'. downloading all tweets...")
-
-    temp = tweepy.Paginator(
-        tweepy_client.get_users_tweets,
-        id=userid,
-        start_time=latest_tweet_date,
-        tweet_fields=TWEET_FIELDS,
-        expansions=expansions,
-    ).flatten(limit=max_results)
-
-    results = [tweet for tweet in temp]
-    logging.info(f"Downloaded {len(results)} tweets for '{username}'.")
-
-    return results
+class MissingUserInput(Exception):
+    pass
 
 
-def get_user_data(client: tweepy.Client, username: str) -> dict:
-    try:
-        return client.get_user(username=username, user_fields=USER_FIELDS)["data"]  # type: ignore
-    except tweepy.BadRequest as error:
-        logging.error(f"User '{username}' not found!")
-        raise error
+class MissingClient(Exception):
+    pass
 
 
-def combine_tweets_to_df(
-    userlist: list[str], mongo_client: MongoDatabase, threshold: Optional[int] = None
-) -> pd.DataFrame:
-    data = []
-    for idx, user in tqdm(enumerate(userlist)):
-        data_raw = mongo_client.load_raw_data(user, projection={"_id": 1, "text": 1})
-        data_user = [data["text"] for data in data_raw]
-        if threshold is not None and len(data_user) < threshold:
-            continue
-        df = pd.DataFrame({"text": data_user, "label": repeat(user, len(data_user))})
-        df.index = df.index + (idx * 10**6)  # Avoid duplicate indices
-        data.append(df)
-    return pd.concat(data)
+class DatasetGenerator:
+    def __init__(self, environment_vars: Environment, logging_level=logging.INFO) -> None:
+        self.tweepy_client = tweepy.Client(
+            bearer_token=environment_vars.bearer_token,
+            wait_on_rate_limit=True,
+            return_type=dict,  # type: ignore
+        )
+        self.mongo_client = MongoDatabase(
+            db_host=environment_vars.db_host,  # type: ignore
+            db_port=environment_vars.db_port,  # type: ignore
+            db_name=environment_vars.db_name,  # type: ignore
+            db_user=environment_vars.db_user,  # type: ignore
+            db_password=environment_vars.db_pw,  # type: ignore
+            logging_level=logging_level,
+        )
+        self.logger = functools.partial(_logger, "DatasetGenerator", logging_level)
 
+    def load_userlist(self, userdictpath: str) -> tuple[str, dict[str, list[str]]]:
+        userdict_name = os.path.basename(userdictpath).split(".")[0]
+        with open(userdictpath, "r") as stream:
+            userdict = yaml.safe_load(stream)
+        return userdict_name, userdict
 
-def create_HF_dataset_rawdata(df: pd.DataFrame, lang: str) -> None:
-    df.index.names = ["idx"]
-    # Split Data
-    train, validate = train_test_split(df, test_size=0.2, shuffle=True, random_state=RANDOM_SEED)
+    def get_user_timeline(
+        self, username: Optional[str] = None, userid: Optional[str] = None, max_results: int = 3200
+    ) -> list:
+        userdata = self.get_userdata(username=username, userid=userid)
+        return self.__get_user_timeline(userdata["username"], userdata["id"], max_results)
 
-    for split, split_type in zip([train, validate], ["train", "validation"]):
-        json_name = f"data/tweetyface_{lang}/{split_type}.json"
-        os.makedirs(os.path.dirname(json_name), exist_ok=True)
-        _df = pd.DataFrame(split).reset_index().rename(columns={"index": "idx"})
-        _df[["text", "label", "idx"]].to_json(json_name, orient="records", lines=True, index=True)
-        logging.info(f"Saved {json_name}.")
+    def get_userdata(self, username: Optional[str], userid: Optional[str]) -> dict:
+        if username is None and userid is None:
+            raise MissingUserInput("Please provide a valid username or userid")
+        return self._get_userdata(username, userid)
+
+    def save_user_timeline(self, username: str, usertweets: list):
+        self.mongo_client.save_in_mongodb(username=username, usertweets=usertweets)
+
+    def get_and_save_timeline(
+        self, username: str, userid: Optional[str] = None, max_results: int = 3200
+    ):
+        user_tweets = self.get_user_timeline(
+            username=username, userid=userid, max_results=max_results
+        )
+        if len(user_tweets) == 0:
+            return
+        self.save_user_timeline(username=username, usertweets=user_tweets)
+
+    def __get_user_timeline(self, username: str, userid: str, max_results: int) -> list:
+        expansions = "referenced_tweets.id"
+
+        self.logger("")
+        self.logger(f"Downloading user timeline for '{username}'...")
+        # Get latest Tweet in MongoDB
+        latest_tweet_date = self.mongo_client.get_latest_tweet(username=username)
+        if latest_tweet_date is not None:
+            self.logger(f"Downloading tweets newer than {latest_tweet_date}...")
+        else:
+            self.logger(f"No tweets found in mongodb for '{username}'. downloading all tweets...")
+
+        full_results = tweepy.Paginator(
+            self.tweepy_client.get_users_tweets,
+            id=userid,
+            start_time=latest_tweet_date,
+            tweet_fields=TWEET_FIELDS,
+            expansions=expansions,
+        ).flatten(limit=max_results)
+
+        results = [tweet for tweet in full_results]
+        self.logger(f"Downloaded {len(results)} tweets for '{username}'.")
+
+        return results
+
+    def _get_userdata(self, username: Optional[str], userid: Optional[str]) -> dict:
+        try:
+            return self.tweepy_client.get_user(
+                username=username, id=userid, user_fields=USER_FIELDS  # type: ignore
+            )["data"]
+        except tweepy.NotFound as error:
+            if userid is None:
+                self.logger(f"User '{username}' not found!", ow_level=logging.WARNING)
+            elif username is None:
+                self.logger(f"User with id '{userid}' not found!", ow_level=logging.WARNING)
+            else:
+                self.logger(
+                    f"User '{username}' with id '{userid}' not found!", ow_level=logging.WARNING
+                )
+            raise error
+
+    def combine_tweets_to_df(
+        self, userlist: list[str], threshold: Optional[int] = None
+    ) -> pd.DataFrame:
+        data = []
+        for idx, user in enumerate(userlist):
+            data_raw = self.mongo_client.load_raw_data(
+                user,
+                projection={"_id": 1, "text": 1, "referenced_tweets": 1, "in_reply_to_user_id": 1},
+            )
+            data_user = [
+                [
+                    tweet["_id"],
+                    tweet["text"],
+                    True if "referenced_tweets" in tweet else False,
+                    True if "in_reply_to_user_id" in tweet else False,
+                ]
+                for tweet in data_raw
+            ]
+            if threshold is not None and len(data_user) < threshold:
+                continue
+            idx = [entry[0] for entry in data_user]
+            tweets = [entry[1] for entry in data_user]
+            ref_tweets = [entry[2] for entry in data_user]
+            reply_tweets = [entry[3] for entry in data_user]
+            df = pd.DataFrame(
+                {
+                    "text": tweets,
+                    "label": itertools.repeat(user, len(data_user)),
+                    "idx": idx,
+                    "ref_tweet": ref_tweets,
+                    "reply_tweet": reply_tweets,
+                }
+            )
+            data.append(df)
+        return pd.concat(data)
+
+    def create_HF_dataset_rawdata(
+        self,
+        lang: str,
+        df: Optional[pd.DataFrame] = None,
+        userlist: Optional[list[str]] = None,
+        threshold: Optional[int] = None,
+        filename: str = "tweetyface",
+    ) -> None:
+        if df is None and userlist is None:
+            raise MissingUserInput("Please provide a valid DataFrame or list with usernames")
+        elif df is None and userlist is not None:
+            df = self.combine_tweets_to_df(userlist=userlist, threshold=threshold)
+        elif df is not None and userlist is not None:
+            raise Warning("Both DataFrame and list with usernames provided. Using DataFrame.")
+        else:
+            df = df
+
+        train, validate = train_test_split(
+            df,
+            test_size=0.2,
+            shuffle=True,
+            random_state=RANDOM_SEED,
+            stratify=df["label"].to_list(),  # type: ignore
+        )
+
+        for split, split_type in zip([train, validate], ["train", "validation"]):
+            json_name = f"data/{filename}_{lang}/{split_type}.json"
+            os.makedirs(os.path.dirname(json_name), exist_ok=True)
+            _df = pd.DataFrame(split)
+            _df.to_json(json_name, orient="records", lines=True, index=True)
+            self.logger(f"Saved {json_name}.")
 
 
 def main():
-    logging.info("Starting...")
-    userdictpath = "data/userlist.yaml"
-    with open(userdictpath, "r") as stream:
-        userdict = yaml.safe_load(stream)
-
-    env = Environment()
-    tweepy_client = tweepy.Client(
-        bearer_token=env.bearer_token, wait_on_rate_limit=True, return_type=dict  # type: ignore
-    )
-    mongo_client = MongoDatabase(
-        db_host=env.db_host,  # type: ignore
-        db_port=env.db_port,  # type: ignore
-        db_name=env.db_name,  # type: ignore
-        db_user=env.db_user,  # type: ignore
-        db_password=env.db_pw,  # type: ignore
-    )
-    new_entries = 0
-    for user in [entry for dlist in userdict.values() for entry in dlist]:
-        try:
-            user_data = get_user_data(tweepy_client, user)
-        except tweepy.BadRequest:
-            logging.info(f"User '{user}' not found. Skipping...")
-            continue
-        user_tweets = get_user_timeline(
-            tweepy_client, mongo_client, username=user, userid=user_data["id"]
-        )
-        if len(user_tweets) > 0:
-            mongo_client.save_in_mongodb(username=user, usertweets=user_tweets)
-            new_entries += len(user_tweets)
-
-    if new_entries == 0:
-        logging.info("No new entries found. Exiting...")
-        return
-    print("\n-----------------------------------------------------------")
-    print(f"Create new HF dataset with {new_entries} new entries? (y/n)")
-    create_new_dataset = input()
-    if create_new_dataset == "y":
+    userdictpaths = ["data/tweetyface.yaml", "data/tweetyface_short.yaml"]
+    for userdictpath in userdictpaths:
+        env = Environment()
+        dataset_generator = DatasetGenerator(env)
+        userdict_name, userdict = dataset_generator.load_userlist(userdictpath)
         for lang, userlist in userdict.items():
-            df = combine_tweets_to_df(userlist, mongo_client, threshold=1000)
-            logging.info(f"Creating HF dataset for {lang}...")
-            create_HF_dataset_rawdata(df, lang)
+            for user in userlist:
+                try:
+                    dataset_generator.get_and_save_timeline(username=user)
+                except tweepy.NotFound:
+                    continue
+            dataset_generator.create_HF_dataset_rawdata(
+                lang=lang, userlist=userlist, threshold=1000, filename=userdict_name
+            )
 
 
 if __name__ == "__main__":
