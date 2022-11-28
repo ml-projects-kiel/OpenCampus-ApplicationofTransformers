@@ -49,7 +49,7 @@ class DatasetGenerator:
     def get_user_timeline(
         self, username: Optional[str] = None, userid: Optional[str] = None, max_results: int = 3200
     ) -> list:
-        userdata = self.get_userdata(username=username, userid=userid)
+        userdata = self.get_userdata(username, userid)
         return self.__get_user_timeline(userdata["username"], userdata["id"], max_results)
 
     def get_userdata(self, username: Optional[str], userid: Optional[str]) -> dict:
@@ -116,34 +116,12 @@ class DatasetGenerator:
     ) -> pd.DataFrame:
         data = []
         for idx, user in enumerate(userlist):
-            data_raw = self.mongo_client.load_raw_data(
-                user,
-                projection={"_id": 1, "text": 1, "referenced_tweets": 1, "in_reply_to_user_id": 1},
-            )
-            data_user = [
-                [
-                    tweet["_id"],
-                    tweet["text"],
-                    True if "referenced_tweets" in tweet else False,
-                    True if "in_reply_to_user_id" in tweet else False,
-                ]
-                for tweet in data_raw
-            ]
+            data_raw = self.mongo_client.load_raw_data(user, projection={"_id": 1, "text": 1})
+            data_user = [data["text"] for data in data_raw]
             if threshold is not None and len(data_user) < threshold:
                 continue
-            idx = [entry[0] for entry in data_user]
-            tweets = [entry[1] for entry in data_user]
-            ref_tweets = [entry[2] for entry in data_user]
-            reply_tweets = [entry[3] for entry in data_user]
-            df = pd.DataFrame(
-                {
-                    "text": tweets,
-                    "label": itertools.repeat(user, len(data_user)),
-                    "idx": idx,
-                    "ref_tweet": ref_tweets,
-                    "reply_tweet": reply_tweets,
-                }
-            )
+            df = pd.DataFrame({"text": data_user, "label": itertools.repeat(user, len(data_user))})
+            df.index = df.index + (idx * 10**6)  # Avoid duplicate indices
             data.append(df)
         return pd.concat(data)
 
@@ -164,6 +142,7 @@ class DatasetGenerator:
         else:
             df = df
 
+        df.index.names = ["idx"]  # type: ignore
         train, validate = train_test_split(
             df,
             test_size=0.2,
@@ -175,8 +154,10 @@ class DatasetGenerator:
         for split, split_type in zip([train, validate], ["train", "validation"]):
             json_name = f"data/{filename}_{lang}/{split_type}.json"
             os.makedirs(os.path.dirname(json_name), exist_ok=True)
-            _df = pd.DataFrame(split)
-            _df.to_json(json_name, orient="records", lines=True, index=True)
+            _df = pd.DataFrame(split).reset_index().rename(columns={"index": "idx"})
+            _df[["text", "label", "idx"]].to_json(
+                json_name, orient="records", lines=True, index=True
+            )
             self.logger(f"Saved {json_name}.")
 
 
