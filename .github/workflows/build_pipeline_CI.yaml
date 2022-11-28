@@ -50,7 +50,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          poetry install --without SpaCy, Visuals
+          poetry install --without SpaCy,Visuals
           python --version
 
       - name: Run linter
