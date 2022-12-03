@@ -195,7 +195,7 @@ class DatasetGenerator:
 
 
 def main():
-    userdictpaths = ["data/tweetyface.yaml", "data/tweetyface_short.yaml"]
+    userdictpaths = ["data/tweetyface.yaml"]
     for userdictpath in userdictpaths:
         env = Environment()
         dataset_generator = DatasetGenerator(env)
