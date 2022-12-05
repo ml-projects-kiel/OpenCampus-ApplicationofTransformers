@@ -27,4 +27,4 @@ repos:
       - id: flake8-nb
         args:
           - --max-line-length=100
-          - --extend-ignore=E402
+          - --extend-ignore=E402,E501

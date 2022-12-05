@@ -32,10 +32,10 @@ mkl = "^2022.2.0"
 mkl-include = "^2022.2.0"
 pyarrow = "^10.0.0"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 pytest = "^7.2"
 pytest-cov = "^4.0.0"
-black = "^22.10.0"
+black = { extras = ["jupyter"], version = "^22.10.0" }
 flake8 = "^6.0.0"
 pre-commit = "^2.20.0"
 ipykernel = "^6.16.0"

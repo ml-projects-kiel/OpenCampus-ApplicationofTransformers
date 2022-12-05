@@ -119,14 +119,25 @@ class DatasetGenerator:
         for idx, user in enumerate(userlist):
             data_raw = self.mongo_client.load_raw_data(
                 user,
-                projection={"_id": 1, "text": 1, "referenced_tweets": 1, "in_reply_to_user_id": 1},
+                projection={
+                    "_id": 1,
+                    "author_id": 1,
+                    "text": 1,
+                    "referenced_tweets": 1,
+                    "in_reply_to_user_id": 1,
+                },
             )
             data_user = [
                 [
                     tweet["_id"],
                     tweet["text"],
                     True if "referenced_tweets" in tweet else False,
-                    True if "in_reply_to_user_id" in tweet else False,
+                    tweet["referenced_tweets"][0]["type"] if "referenced_tweets" in tweet else None,
+                    None
+                    if "in_reply_to_user_id" not in tweet
+                    else "self"
+                    if tweet["in_reply_to_user_id"] == tweet["author_id"]
+                    else "other",
                 ]
                 for tweet in data_raw
             ]
@@ -135,14 +146,16 @@ class DatasetGenerator:
             idx = [entry[0] for entry in data_user]
             tweets = [entry[1] for entry in data_user]
             ref_tweets = [entry[2] for entry in data_user]
-            reply_tweets = [entry[3] for entry in data_user]
+            ref_types = [entry[3] for entry in data_user]
+            reply_to = [entry[4] for entry in data_user]
             df = pd.DataFrame(
                 {
                     "text": tweets,
                     "label": itertools.repeat(user, len(data_user)),
                     "idx": idx,
                     "ref_tweet": ref_tweets,
-                    "reply_tweet": reply_tweets,
+                    "ref_type": ref_types,
+                    "reply_to": reply_to,
                 }
             )
             data.append(df)
@@ -182,7 +195,7 @@ class DatasetGenerator:
 
 
 def main():
-    userdictpaths = ["data/tweetyface.yaml", "data/tweetyface_short.yaml"]
+    userdictpaths = ["data/tweetyface.yaml"]
     for userdictpath in userdictpaths:
         env = Environment()
         dataset_generator = DatasetGenerator(env)
