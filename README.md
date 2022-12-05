@@ -26,14 +26,39 @@ Poetry is a tool for dependency management and packaging in Python. It allows yo
 - (Optional) Config Poetry venv inside the repository:<br>
   `poetry config virtualenvs.in-project true`
 
-- Activate installed Python >=3.9 from Pyenv in Poetry:<br>
+- Create the venv with Python >=3.10:<br>
   `poetry env use /full/path/to/python`
 
-- After cloning the repo (go inside the repo), you create and activate a venv via:<br>
+- After creating the venv restart the shell:<br>
   `poetry shell`
 
-- The installations of all libraries will be done via:<br>
+- The installations of all libraries can be done via:<br>
   `poetry install`
+
+  - (Optional) The dependencies are separated into groups. Groups can be included and excluded:<br>
+    `poetry install --without Group1,Group2` or `poetry install --with Group1,Group2`<br>
+    More info can be found [here](https://python-poetry.org/docs/cli/#install).
 
 - Install pre-commit yaml:<br>
   `pre-commit install`
+
+### Development Setup
+
+This Repo enforces some coding standards.
+
+- Git settings:<br>
+  `pull.rebase=true`
+
+- VSCode settings:<br>
+  ```
+    "editor.codeActionsOnSave": {
+        "source.organizeImports": true
+    },
+    "editor.formatOnSave": true,
+    "files.trimTrailingWhitespace": true,
+    "python.formatting.provider": "black",
+    "python.formatting.blackArgs": [
+        "--line-length",
+        "100"
+    ],
+  ```
