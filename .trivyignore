@@ -1,5 +1,7 @@
 # No current fix for PyZMQ dependency for py
+
 CVE-2022-42969
 
 # Fixed in version 4.11.2
-CVE-2022-39286
+
+CVE-2022-45907
