@@ -343,6 +343,7 @@ spacy = ">=3.4.0,<3.5.0"
 [package.source]
 type = "url"
 url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.4.1/en_core_web_sm-3.4.1-py3-none-any.whl"
+
 [[package]]
 name = "entrypoints"
 version = "0.4"
@@ -620,7 +621,7 @@ test-extra = ["curio", "matplotlib (!=3.2.0)", "nbformat", "numpy (>=1.20)", "pa
 
 [[package]]
 name = "ipywidgets"
-version = "8.0.2"
+version = "8.0.3"
 description = "Jupyter interactive widgets"
 category = "main"
 optional = false
@@ -1911,7 +1912,7 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "34d4173557e5c0a250ac22b3d53cb2662bb27ec1a5b4a83ad47a4fc7f741a936"
+content-hash = "bcbde88e5dad66f87bd879bbb7d16de39c3826d85bb96d74d3d602f94cb11071"
 
 [metadata.files]
 aiohttp = [
@@ -2512,8 +2513,8 @@ ipython = [
     {file = "ipython-8.7.0.tar.gz", hash = "sha256:882899fe78d5417a0aa07f995db298fa28b58faeba2112d2e3a4c95fe14bb738"},
 ]
 ipywidgets = [
-    {file = "ipywidgets-8.0.2-py3-none-any.whl", hash = "sha256:1dc3dd4ee19ded045ea7c86eb273033d238d8e43f9e7872c52d092683f263891"},
-    {file = "ipywidgets-8.0.2.tar.gz", hash = "sha256:08cb75c6e0a96836147cbfdc55580ae04d13e05d26ffbc377b4e1c68baa28b1f"},
+    {file = "ipywidgets-8.0.3-py3-none-any.whl", hash = "sha256:db7dd35fb1217636cbdbe0ba0bd2216d91a7695cb28b5c1dca17e62cd51378de"},
+    {file = "ipywidgets-8.0.3.tar.gz", hash = "sha256:2ec50df8538a1d4ddd5d454830d010922ad1015e81ac23efb27c0908bbc1eece"},
 ]
 jedi = [
     {file = "jedi-0.18.2-py2.py3-none-any.whl", hash = "sha256:203c1fd9d969ab8f2119ec0a3342e0b49910045abe6af0a3ae83a5764d54639e"},
@@ -2942,6 +2943,8 @@ pickleshare = [
     {file = "pickleshare-0.7.5.tar.gz", hash = "sha256:87683d47965c1da65cdacaf31c8441d12b8044cdec9aca500cd78fc2c683afca"},
 ]
 pillow = [
+    {file = "Pillow-9.3.0-1-cp37-cp37m-win32.whl", hash = "sha256:e6ea6b856a74d560d9326c0f5895ef8050126acfdc7ca08ad703eb0081e82b74"},
+    {file = "Pillow-9.3.0-1-cp37-cp37m-win_amd64.whl", hash = "sha256:32a44128c4bdca7f31de5be641187367fe2a450ad83b833ef78910397db491aa"},
     {file = "Pillow-9.3.0-cp310-cp310-macosx_10_10_x86_64.whl", hash = "sha256:0b7257127d646ff8676ec8a15520013a698d1fdc48bc2a79ba4e53df792526f2"},
     {file = "Pillow-9.3.0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:b90f7616ea170e92820775ed47e136208e04c967271c9ef615b6fbd08d9af0e3"},
     {file = "Pillow-9.3.0-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:68943d632f1f9e3dce98908e873b3a090f6cba1cbb1b892a9e8d97c938871fbe"},
