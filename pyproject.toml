@@ -20,7 +20,7 @@ torchvision = "^0.13.1"
 torchaudio = "^0.12.1"
 # HuggingFace
 datasets = "^2.7.0"
-evaluate = "^0.3.0"
+evaluate = "^0.4.0"
 transformers = { extras = ["sentencepiece"], version = "^4.23.1" }
 # DataGeneration
 python-dotenv = "^0.21.0"
